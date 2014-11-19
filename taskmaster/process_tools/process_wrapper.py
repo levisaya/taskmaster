@@ -1,8 +1,10 @@
 import psutil
 from subprocess import PIPE
 from threading import Thread, Event
-from tornado.ioloop import IOLoop, PeriodicCallback
+from tornado.ioloop import IOLoop
 from queue import Queue, Empty
+import time
+from taskmaster.process_tools.constants import StreamType
 
 
 class BlockingStreamReader(Thread):
@@ -23,13 +25,15 @@ class BlockingStreamReader(Thread):
             if not len(line):
                 break
             else:
-                self.callback_queue.put(line)
+                self.callback_queue.put((time.time(), line))
         self.stopped.set()
 
 
 class ProcessEventGenerator(object):
-    def __init__(self, process, ioloop):
+    def __init__(self, process_id, process, process_manager, ioloop):
+        self.process_id = process_id
         self.process = process
+        self.process_manager = process_manager
         self.ioloop = ioloop
 
         self.stdout_queue = Queue()
@@ -41,19 +45,10 @@ class ProcessEventGenerator(object):
         self.stderr_reader.start()
 
         self.ioloop.add_callback(self.performance_stats)
-        self.ioloop.add_callback(self.read_stream, *[self.stdout_queue])
-        self.ioloop.add_callback(self.read_stream, *[self.stderr_queue])
+        self.ioloop.add_callback(self.read_stream, *[self.stdout_queue, StreamType.Stdout])
+        self.ioloop.add_callback(self.read_stream, *[self.stderr_queue, StreamType.Stderr])
 
-        self.readers = []
-
-    def add_reader(self, reader):
-        if reader not in self.readers:
-            self.readers.append(reader)
-
-    def remove_reader(self, reader):
-        self.readers.remove(reader)
-
-    def read_stream(self, output_queue):
+    def read_stream(self, output_queue, stream_type):
         output = []
 
         try:
@@ -63,12 +58,11 @@ class ProcessEventGenerator(object):
             pass
 
         if len(output):
-            for reader in self.readers:
-                reader.handle_stream_output(output)
+            self.process_manager.handle_output(self.process_id, output, stream_type)
 
-            self.ioloop.add_callback(self.read_stream, *[output_queue])
+            self.ioloop.add_callback(self.read_stream, *[output_queue, stream_type])
         else:
-            self.ioloop.call_later(0.1, self.read_stream, *[output_queue])
+            self.ioloop.call_later(0.1, self.read_stream, *[output_queue, stream_type])
 
     def performance_stats(self):
         try:
@@ -79,7 +73,9 @@ class ProcessEventGenerator(object):
 
 
 class ProcessWrapper(object):
-    def __init__(self, arglist, ioloop=IOLoop.instance()):
+    def __init__(self, process_id, process_manager, arglist, ioloop=IOLoop.instance()):
+        self.process_id = process_id
+        self.process_manager = process_manager
         self.arglist = arglist
         self.ioloop = ioloop
         self.process = None
@@ -90,17 +86,13 @@ class ProcessWrapper(object):
 
         # Required to give a baseline CPU usage.
         self.process.cpu_percent()
-        self.processor = ProcessEventGenerator(self.process, self.ioloop)
+        self.processor = ProcessEventGenerator(self.process_id, self.process, self.process_manager, self.ioloop)
 
     def process_running(self):
         if self.process is not None:
             return self.process.is_running()
         else:
             return False
-
-    def get_output(self, reader):
-        if self.processor is not None:
-            self.processor.add_reader(reader)
 
     def wait(self):
         if self.process is not None:
