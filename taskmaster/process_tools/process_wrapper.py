@@ -66,9 +66,12 @@ class ProcessEventGenerator(object):
 
     def performance_stats(self):
         try:
-            print(self.ioloop.time(), self.process.cpu_percent(), self.process.memory_info())
+            print(self.process.status())
+            self.process_manager.handle_status_change(self.process_id, self.ioloop.time(), self.process.status())
+
             self.ioloop.call_later(0.5, self.performance_stats)
         except psutil.NoSuchProcess:
+            self.process_manager.handle_status_change(self.process_id, self.ioloop.time(), psutil.STATUS_DEAD)
             print('Process Terminated')
 
 
@@ -94,6 +97,9 @@ class ProcessWrapper(object):
         else:
             return False
 
-    def wait(self):
+    def kill(self):
         if self.process is not None:
-            self.process.wait()
+            print('Killing {}'.format(self.process_id))
+            self.process.kill()
+
+
