@@ -22,14 +22,13 @@ class ProcessStatusHandler(tornado.web.RequestHandler):
     def initialize(self, process_manager):
         self.process_manager = process_manager
 
-    def handle_status_change(self, change_time, status):
-        self.write({'last_output_time': change_time,
-                    'status': status})
+    def handle_status_changes(self, changes):
+        self.write(changes)
         self.finish()
 
     @tornado.web.asynchronous
-    def get(self, process_id, last_time):
-        self.process_manager.get_status(int(process_id), self, float(last_time))
+    def get(self, last_time):
+        self.process_manager.get_status(self, float(last_time))
 
 
 class StreamingLogHandler(tornado.web.RequestHandler):
@@ -54,7 +53,7 @@ if __name__ == "__main__":
 
     application = tornado.web.Application([
         (r"/process/([0-9]+)/(.+)", ProcessControlHandler, dict(process_manager=process_manager)),
-        (r"/process_status/([0-9]+)/([0-9]+.[0-9]+)", ProcessStatusHandler, dict(process_manager=process_manager)),
+        (r"/process_status/([0-9]+.[0-9]+)", ProcessStatusHandler, dict(process_manager=process_manager)),
         (r"/logs/streaming/([0-9]+)/([0-9]+)/([0-9]+.[0-9]+)", StreamingLogHandler, dict(process_manager=process_manager))
     ])
 
