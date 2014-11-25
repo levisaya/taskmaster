@@ -56,7 +56,7 @@ if __name__ == "__main__":
         (r"/process/([0-9]+)/(.+)", ProcessControlHandler, dict(process_manager=process_manager)),
         (r"/process_status/([0-9]+)/([0-9]+.[0-9]+)", ProcessStatusHandler, dict(process_manager=process_manager)),
         (r"/logs/streaming/([0-9]+)/([0-9]+)/([0-9]+.[0-9]+)", StreamingLogHandler, dict(process_manager=process_manager))
-    ], debug=True)
+    ])
 
     application.listen(8888)
     tornado.ioloop.IOLoop.instance().start()

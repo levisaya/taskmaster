@@ -61,6 +61,9 @@ class ProcessManager(object):
         if new_status != self.processes[process_id]['status'][1]:
             self.processes[process_id]['status'] = (change_time, new_status)
 
+            if new_status == psutil.STATUS_DEAD:
+                self.processes[process_id]['process'] = None
+
     def handle_status_change(self, process_id, change_time, new_status):
         IOLoop.current().add_callback(self._handle_status_change, *[process_id, change_time, new_status])
 
