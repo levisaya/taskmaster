@@ -7,15 +7,16 @@ import psutil
 
 class ProcessManager(object):
     def __init__(self):
+        current_time = round(IOLoop.instance().time(), 2)
         self.processes = {1: {'name': 'test print (3s)',
                               'arguments': ['python', '-c', 'import time; time.sleep(1); print("hello world"); time.sleep(1); print("goodbye world")'],
                               'process': None,
-                              'status':  {'last_updated': IOLoop.instance().time(),
+                              'status':  {'last_updated': current_time,
                                           'status': psutil.STATUS_DEAD}},
                           2: {'name': 'very long!',
                               'arguments': ['python', '-c', 'import time; time.sleep(5)'],
                               'process': None,
-                              'status': {'last_updated': IOLoop.instance().time(),
+                              'status': {'last_updated': current_time,
                                          'status': psutil.STATUS_DEAD}}
                           }
 
@@ -61,7 +62,9 @@ class ProcessManager(object):
                 process_status[process_index] = process_info['status']
 
         if process_status != {}:
-            handler.handle_status_changes(process_status)
+            most_recent_update = max([process_data['last_updated'] for process_data in process_status.values()])
+            handler.handle_status_changes({'last_update_time': most_recent_update,
+                                           'process_data': process_status})
         else:
             IOLoop.current().call_later(0.1, self._write_status_to_handler, *[handler, last_retrieved_time])
 

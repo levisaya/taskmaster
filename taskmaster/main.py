@@ -3,6 +3,7 @@ import tornado.web
 from tornado.escape import to_unicode
 from taskmaster.process_tools.process_manager import ProcessManager
 from taskmaster.process_tools.constants import StreamType
+from mako.template import Template
 
 
 class ProcessControlHandler(tornado.web.RequestHandler):
@@ -48,13 +49,20 @@ class StreamingLogHandler(tornado.web.RequestHandler):
                                         float(last_time))
 
 
+class PageHandler(tornado.web.RequestHandler):
+    def get(self):
+        template = Template(filename='static/templates/main.html')
+        self.write(template.render())
+
 if __name__ == "__main__":
     process_manager = ProcessManager()
 
     application = tornado.web.Application([
+        (r"/", PageHandler),
         (r"/process/([0-9]+)/(.+)", ProcessControlHandler, dict(process_manager=process_manager)),
         (r"/process_status/([0-9]+.[0-9]+)", ProcessStatusHandler, dict(process_manager=process_manager)),
-        (r"/logs/streaming/([0-9]+)/([0-9]+)/([0-9]+.[0-9]+)", StreamingLogHandler, dict(process_manager=process_manager))
+        (r"/logs/streaming/([0-9]+)/([0-9]+)/([0-9]+.[0-9]+)", StreamingLogHandler, dict(process_manager=process_manager)),
+        (r"/static/(.*)", tornado.web.StaticFileHandler, {"path": "static"}),
     ])
 
     application.listen(8888)

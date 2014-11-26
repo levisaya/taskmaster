@@ -34,7 +34,7 @@ class BlockingStreamReader(Thread):
                 break
             else:
                 # Put the text on the queue, along with the time it was read.
-                self.callback_queue.put((time.time(), line))
+                self.callback_queue.put((round(time.time(), 2), line))
 
 
 class ProcessEventGenerator(object):
@@ -122,7 +122,7 @@ class ProcessEventGenerator(object):
         except psutil.NoSuchProcess:
             pass
 
-        self.process_manager.handle_status_change(self.process_index, self.ioloop.time(), current_status)
+        self.process_manager.handle_status_change(self.process_index, round(self.ioloop.time(), 2), current_status)
 
         if current_status != psutil.STATUS_DEAD:
             self.ioloop.call_later(0.5, self.performance_stats)

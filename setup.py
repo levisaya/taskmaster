@@ -10,5 +10,6 @@ setup(
     author_email='levisaya@gmail.com',
     description='Server to manage and monitor long running processes.',
     install_requires=["psutil>=2.1.3",
-                      "tornado>=4.0"]
+                      "tornado>=4.0",
+                      "mako>=1.0.0"]
 )
