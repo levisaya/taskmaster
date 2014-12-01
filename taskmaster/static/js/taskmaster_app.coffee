@@ -1,22 +1,29 @@
-taskmasterApp = angular.module('taskmasterApp', [])
+taskmasterApp = angular.module('taskmasterApp', ['ui.bootstrap'])
 
 taskmasterApp.controller('ProcessListController',
-    ($scope, $http) ->
+    ($scope, $http, $timeout) ->
         $scope.process_list_model = {}
         $scope.last_status_time = 0.0
 
-        $scope.update_model = (data) ->
+        $scope.update_model_with_status = (data) ->
             for process_index,model_data of data.process_data
-                $scope.process_list_model[process_index] = model_data
+                if process_index not of $scope.process_list_model
+                    $scope.process_list_model[process_index] = {}
+                    $http.get('process_info/' + process_index).
+                          success((info_data)-> $scope.process_list_model[info_data.index].info = info_data)
+                $scope.process_list_model[process_index].status = model_data
+                console.log($scope.process_list_model[process_index])
 
             $scope.last_status_time = data.last_update_time
 
             $scope.reschedule_status_update()
 
-        $scope.reschedule_status_update = () ->
-            $http.get('process_status/' + $scope.last_status_time.toFixed(2)).
-                success($scope.update_model).
-                error($scope.reschedule_status_update)
+        $scope.reschedule_status_update = (delay = 0) ->
+            http_get = () -> $http.get('process_status/' + $scope.last_status_time.toFixed(2)).
+                                    success($scope.update_model_with_status).
+                                    error(-> $scope.reschedule_status_update(1000))
+            $timeout(http_get, delay)
+            return
 
         $scope.reschedule_status_update()
         return

@@ -22,6 +22,12 @@ class ProcessManager(object):
 
         self.output_buffers = {process_id: {StreamType.Stdout: [], StreamType.Stderr: []} for process_id in self.processes.keys()}
 
+    def get_info(self, process_index):
+        if process_index in self.processes:
+            return dict(list({'index': process_index}.items()) + list({k: v for k, v in self.processes[process_index].items() if k != 'process'}.items()))
+        else:
+            return None
+
     def start_process(self, process_index):
         if self.processes[process_index]['process'] is None:
             self.processes[process_index]['process'] = ProcessWrapper(process_index, self, self.processes[process_index]['arguments'])

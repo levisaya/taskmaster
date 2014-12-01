@@ -19,6 +19,20 @@ class ProcessControlHandler(tornado.web.RequestHandler):
             raise tornado.web.HTTPError(404)
 
 
+class ProcessInfoHandler(tornado.web.RequestHandler):
+    def initialize(self, process_manager):
+        self.process_manager = process_manager
+
+    def get(self, process_index):
+        process_info = self.process_manager.get_info(int(process_index))
+
+        if process_info is not None:
+            print(process_info)
+            self.write(process_info)
+        else:
+            raise tornado.web.HTTPError(404)
+
+
 class ProcessStatusHandler(tornado.web.RequestHandler):
     def initialize(self, process_manager):
         self.process_manager = process_manager
@@ -61,6 +75,7 @@ if __name__ == "__main__":
         (r"/", PageHandler),
         (r"/process/([0-9]+)/(.+)", ProcessControlHandler, dict(process_manager=process_manager)),
         (r"/process_status/([0-9]+.[0-9]+)", ProcessStatusHandler, dict(process_manager=process_manager)),
+        (r"/process_info/([0-9]+)", ProcessInfoHandler, dict(process_manager=process_manager)),
         (r"/logs/streaming/([0-9]+)/([0-9]+)/([0-9]+.[0-9]+)", StreamingLogHandler, dict(process_manager=process_manager)),
         (r"/static/(.*)", tornado.web.StaticFileHandler, {"path": "static"}),
     ])

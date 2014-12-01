@@ -5,15 +5,29 @@
         <title>Taskmaster</title>
         <link rel="stylesheet" href="static/libs/bootstrap/dist/css/bootstrap.css">
         <script src="static/libs/angular/angular.js"></script>
-        <script src="static/libs/angular-bootstrap/ui-bootstrap.js"></script>
+        <script src="static/libs/angular-bootstrap/ui-bootstrap-tpls.js"></script>
         <script src="static/libs/angular-ui-router/release/angular-ui-router.js"></script>
         <script src="static/js/taskmaster_app.js"></script>
     </head>
     <body ng-controller="ProcessListController">
-        <div>
-            <div ng-repeat="(process_id,process_info) in process_list_model">
-                <div>{{process_id}}</div>
-                <div>{{process_info.status}}</div>
+        <div class="container-fluid">
+            <div class="row"></div>
+            <div class="row">
+                <div class="col-md-9">
+                    <accordion>
+                        <accordion-group ng-repeat="(process_id,process_info) in process_list_model">
+                            <accordion-heading>
+                                <div class="row">
+                                    <div class="col-md-4">{{process_info.info.name}}</div>
+                                    <div class="col-md-5">
+                                        {{process_info.status.status}}
+                                    </div>
+                                </div>
+                            </accordion-heading>
+                            {{process_info.status}}
+                        </accordion-group>
+                    </accordion>
+                </div>
             </div>
         </div>
     </body>
