@@ -1,0 +1,16 @@
+.process-heading {
+    height: 30px;
+    width: 100%;
+}
+
+.process-namebox {
+    float: left;
+    height: 100%;
+    width: 30%;
+}
+
+.process-controlbox {
+    float: right;
+    height: 100%;
+    width: 30%;
+}

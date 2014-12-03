@@ -4,6 +4,10 @@ taskmasterApp.controller('ProcessListController',
     ($scope, $http, $timeout) ->
         $scope.process_list_model = {}
         $scope.last_status_time = 0.0
+        $scope.last_log_time = 0.0
+
+        $scope.log_process_index = null
+        $scope.log_buffer = []
 
         $scope.update_model_with_status = (data) ->
             for process_index,model_data of data.process_data
@@ -24,6 +28,39 @@ taskmasterApp.controller('ProcessListController',
                                     error(-> $scope.reschedule_status_update(1000))
             $timeout(http_get, delay)
             return
+
+        $scope.start_process = (process_index) ->
+            $http.post('process/' + process_index + '/start')
+
+        $scope.stop_process = (process_index) ->
+            $http.post('process/' + process_index + '/kill')
+
+        $scope.recv_logs = (data) ->
+            if data.process_index = $scope.log_process_index
+                Array::push.apply($scope.log_buffer, data.output)
+                $scope.last_log_time = data.last_output_time
+
+                $scope.subscribe_to_logs(data.process_index)
+
+        $scope.subscribe_unsubscribe_to_logs = (process_index) ->
+            if process_index == $scope.log_process_index
+                #Unsubscribe
+                $scope.log_process_index = null
+                $scope.log_buffer = []
+                $scope.last_log_time = 0.0
+            else
+                $scope.subscribe_to_logs(process_index)
+
+        $scope.subscribe_to_logs = (process_index, delay = 0) ->
+            if process_index != $scope.log_process_index
+                $scope.log_buffer = []
+                $scope.last_log_time = 0.0
+                $scope.log_process_index = process_index
+
+            http_get = () -> $http.get('logs/streaming/' + process_index + '/0/' + $scope.last_log_time.toFixed(2)).
+                                       success($scope.recv_logs).
+                                       error(-> $scope.subscribe_to_logs(process_index, 1000))
+            $timeout(http_get, delay)
 
         $scope.reschedule_status_update()
         return

@@ -9,12 +9,12 @@ class ProcessManager(object):
     def __init__(self):
         current_time = round(IOLoop.instance().time(), 2)
         self.processes = {1: {'name': 'test print (3s)',
-                              'arguments': ['python', '-c', 'import time; time.sleep(1); print("hello world"); time.sleep(1); print("goodbye world")'],
+                              'arguments': ['python', '-c', "import time; time.sleep(1); print('hello world'); time.sleep(1); print('goodbye world')"],
                               'process': None,
                               'status':  {'last_updated': current_time,
                                           'status': psutil.STATUS_DEAD}},
                           2: {'name': 'very long!',
-                              'arguments': ['python', '-c', 'import time; time.sleep(5)'],
+                              'arguments': ['python', '-c', "import time; time.sleep(5); print('all done!')"],
                               'process': None,
                               'status': {'last_updated': current_time,
                                          'status': psutil.STATUS_DEAD}}
@@ -30,6 +30,8 @@ class ProcessManager(object):
 
     def start_process(self, process_index):
         if self.processes[process_index]['process'] is None:
+            self.processes[process_index]['status'] = {'last_updated': round(IOLoop.instance().time(), 2),
+                                                       'status': 'starting'}
             self.processes[process_index]['process'] = ProcessWrapper(process_index, self, self.processes[process_index]['arguments'])
             self.processes[process_index]['process'].start()
 
@@ -41,7 +43,9 @@ class ProcessManager(object):
         ready_to_write = [log for timestamp, log in self.output_buffers[process_index][stream_type] if timestamp > last_retrieved_time]
 
         if len(ready_to_write):
-            stream_handler.handle_stream_output(max(self.output_buffers[process_index][stream_type])[0], ready_to_write)
+            stream_handler.handle_stream_output(process_index,
+                                                max(self.output_buffers[process_index][stream_type])[0],
+                                                ready_to_write)
         else:
             IOLoop.current().call_later(0.1, self._write_output_to_handler, *[process_index, stream_type, stream_handler, last_retrieved_time])
 

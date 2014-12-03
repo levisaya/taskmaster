@@ -10,11 +10,11 @@ class ProcessControlHandler(tornado.web.RequestHandler):
     def initialize(self, process_manager):
         self.process_manager = process_manager
 
-    def post(self, process_id, command):
+    def post(self, process_index, command):
         if command == 'start':
-            self.process_manager.start_process(int(process_id))
+            self.process_manager.start_process(int(process_index))
         elif command == 'kill':
-            self.process_manager.kill(int(process_id))
+            self.process_manager.kill(int(process_index))
         else:
             raise tornado.web.HTTPError(404)
 
@@ -50,14 +50,15 @@ class StreamingLogHandler(tornado.web.RequestHandler):
     def initialize(self, process_manager):
         self.process_manager = process_manager
 
-    def handle_stream_output(self, last_output_time, stream_output_list):
-        self.write({'last_output_time': last_output_time,
+    def handle_stream_output(self, process_index, last_output_time, stream_output_list):
+        self.write({'process_index': process_index,
+                    'last_output_time': last_output_time,
                     'output': [to_unicode(line) for line in stream_output_list]})
         self.finish()
 
     @tornado.web.asynchronous
-    def get(self, process_id, stream_type, last_time):
-        self.process_manager.get_output(int(process_id),
+    def get(self, process_index, stream_type, last_time):
+        self.process_manager.get_output(int(process_index),
                                         StreamType(int(stream_type)),
                                         self,
                                         float(last_time))

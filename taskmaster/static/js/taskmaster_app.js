@@ -7,6 +7,9 @@
   taskmasterApp.controller('ProcessListController', function($scope, $http, $timeout) {
     $scope.process_list_model = {};
     $scope.last_status_time = 0.0;
+    $scope.last_log_time = 0.0;
+    $scope.log_process_index = null;
+    $scope.log_buffer = [];
     $scope.update_model_with_status = function(data) {
       var model_data, process_index, _ref;
       _ref = data.process_data;
@@ -35,6 +38,45 @@
         });
       };
       $timeout(http_get, delay);
+    };
+    $scope.start_process = function(process_index) {
+      return $http.post('process/' + process_index + '/start');
+    };
+    $scope.stop_process = function(process_index) {
+      return $http.post('process/' + process_index + '/kill');
+    };
+    $scope.recv_logs = function(data) {
+      if (data.process_index = $scope.log_process_index) {
+        Array.prototype.push.apply($scope.log_buffer, data.output);
+        $scope.last_log_time = data.last_output_time;
+        return $scope.subscribe_to_logs(data.process_index);
+      }
+    };
+    $scope.subscribe_unsubscribe_to_logs = function(process_index) {
+      if (process_index === $scope.log_process_index) {
+        $scope.log_process_index = null;
+        $scope.log_buffer = [];
+        return $scope.last_log_time = 0.0;
+      } else {
+        return $scope.subscribe_to_logs(process_index);
+      }
+    };
+    $scope.subscribe_to_logs = function(process_index, delay) {
+      var http_get;
+      if (delay == null) {
+        delay = 0;
+      }
+      if (process_index !== $scope.log_process_index) {
+        $scope.log_buffer = [];
+        $scope.last_log_time = 0.0;
+        $scope.log_process_index = process_index;
+      }
+      http_get = function() {
+        return $http.get('logs/streaming/' + process_index + '/0/' + $scope.last_log_time.toFixed(2)).success($scope.recv_logs).error(function() {
+          return $scope.subscribe_to_logs(process_index, 1000);
+        });
+      };
+      return $timeout(http_get, delay);
     };
     $scope.reschedule_status_update();
   });
