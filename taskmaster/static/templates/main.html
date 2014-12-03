@@ -33,7 +33,7 @@
                                     </div>
                                 </div>
                             </accordion-heading>
-                                <div ng-repeat="log_line in log_buffer">{{log_line}}</div>
+                                <div ng-repeat="log_line in log_buffer track by $index">{{log_line}}</div>
                         </accordion-group>
                     </accordion>
                 </div>

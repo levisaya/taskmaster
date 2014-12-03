@@ -20,7 +20,23 @@ class ProcessManager(object):
                                          'status': psutil.STATUS_DEAD}}
                           }
 
-        self.output_buffers = {process_id: {StreamType.Stdout: [], StreamType.Stderr: []} for process_id in self.processes.keys()}
+        self.output_buffers = {process_index: {StreamType.Stdout: [], StreamType.Stderr: []} for process_index in self.processes.keys()}
+
+        IOLoop.current().call_later(30, self._remove_old_logs)
+
+    def _remove_old_logs(self):
+        """
+        Removes all logs from the in-memory buffer that are older than 30 seconds.
+        """
+        old_time = round(IOLoop.instance().time(), 2) - 30
+
+        for process_index, buffers in self.output_buffers.items():
+            for stream_type in buffers:
+                if len(self.output_buffers[process_index][stream_type]) and \
+                   min(self.output_buffers[process_index][stream_type])[0] < old_time:
+                        self.output_buffers[process_index][stream_type] = [(timestamp, line) for timestamp, line in self.output_buffers[process_index][stream_type] if timestamp >= old_time]
+
+        IOLoop.current().call_later(30, self._remove_old_logs)
 
     def get_info(self, process_index):
         if process_index in self.processes:
@@ -53,12 +69,6 @@ class ProcessManager(object):
         IOLoop.current().add_callback(self._write_output_to_handler, *[process_index, stream_type, stream_handler, last_retrieved_time])
 
     def _handle_process_output(self, process_index, output, stream_type):
-        # TODO: Make cleaning up more robust. Right now if we write a bunch of logs in 59 seconds and no more they
-        # stay forever.
-        buffer_timeout = time.time() - 60
-        self.output_buffers[process_index][stream_type] =\
-            [(timestamp, log) for timestamp, log in self.output_buffers[process_index][stream_type] if timestamp >= buffer_timeout]
-
         self.output_buffers[process_index][stream_type].extend(output)
 
     def handle_output(self, process_index, output, stream_type):
