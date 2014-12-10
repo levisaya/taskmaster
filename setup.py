@@ -1,4 +1,11 @@
-from distutils.core import setup
+from setuptools import setup
+import sys
+
+
+python_2_dependencies = []
+
+if sys.version_info < (3,):
+    python_2_dependencies.append('importlib>=1.0.3')
 
 setup(
     name='taskmaster',

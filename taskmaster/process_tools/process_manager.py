@@ -6,19 +6,14 @@ import psutil
 
 
 class ProcessManager(object):
-    def __init__(self):
+    def __init__(self, process_list):
         current_time = round(IOLoop.instance().time(), 2)
-        self.processes = {1: {'name': 'test print (3s)',
-                              'arguments': ['python', '-c', "import time; time.sleep(1); print('hello world'); time.sleep(1); print('goodbye world')"],
-                              'process': None,
-                              'status':  {'last_updated': current_time,
-                                          'status': psutil.STATUS_DEAD}},
-                          2: {'name': 'very long!',
-                              'arguments': ['python', '-c', "import time; time.sleep(5); print('all done!')"],
-                              'process': None,
-                              'status': {'last_updated': current_time,
-                                         'status': psutil.STATUS_DEAD}}
-                          }
+
+        self.processes = {}
+        for i, process in enumerate(process_list):
+            self.processes[i] = process
+            self.processes[i]['process'] = None
+            self.processes[i]['status'] = {'last_updated': current_time, 'status': psutil.STATUS_DEAD}
 
         self.output_buffers = {process_index: {StreamType.Stdout: [], StreamType.Stderr: []} for process_index in self.processes.keys()}
 
