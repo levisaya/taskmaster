@@ -4,12 +4,60 @@
 
   taskmasterApp = angular.module('taskmasterApp', ['ui.bootstrap']);
 
+  taskmasterApp.controller('LogController', function($scope, $http, $timeout, $q) {
+    $scope.last_log_time = 0.0;
+    $scope.last_time_index = 0;
+    $scope.log_buffer = [];
+    $scope.subscribed = false;
+    $scope.canceller = null;
+    $scope.recv_logs = function(data) {
+      Array.prototype.push.apply($scope.log_buffer, data.output);
+      $scope.last_log_time = data.last_output_time;
+      $scope.last_time_index = data.time_index;
+      if ($scope.subscribed) {
+        return $scope.subscribe_to_logs();
+      }
+    };
+    $scope.unsubscribe_to_logs = function() {
+      $scope.canceller.resolve('derp');
+      $scope.log_buffer = [];
+      $scope.last_log_time = 0.0;
+      return $scope.last_time_index = 0;
+    };
+    $scope.$on("$destroy", $scope.unsubscribe_to_logs);
+    $scope.subscribe_to_logs = function(delay) {
+      var http_get;
+      if (delay == null) {
+        delay = 0;
+      }
+      $scope.canceller = $q.defer();
+      http_get = function() {
+        return $http.get('logs/streaming/' + $scope.$parent.$index + '/' + $scope.last_log_time.toFixed(2) + '/' + $scope.last_time_index, {
+          timeout: $scope.canceller.promise
+        }).success($scope.recv_logs).error(function() {
+          if ($scope.subscribed) {
+            return subscribe_to_logs(1000);
+          }
+        });
+      };
+      return $timeout(http_get, delay);
+    };
+    $scope.stop_start = function(event, process_index) {
+      if (process_index === $scope.$parent.$index && $scope.subscribed === false) {
+        $scope.subscribed = true;
+        return $scope.subscribe_to_logs();
+      } else if ($scope.subscribed) {
+        $scope.subscribed = false;
+        return $scope.unsubscribe_to_logs();
+      }
+    };
+    $scope.$on('selected_process', $scope.stop_start);
+  });
+
   taskmasterApp.controller('ProcessListController', function($scope, $http, $timeout) {
     $scope.process_list_model = {};
     $scope.last_status_time = 0.0;
-    $scope.last_log_time = 0.0;
-    $scope.log_process_index = null;
-    $scope.log_buffer = [];
+    $scope.previously_selected = null;
     $scope.update_model_with_status = function(data) {
       var model_data, process_index, _ref;
       _ref = data.process_data;
@@ -45,38 +93,13 @@
     $scope.stop_process = function(process_index) {
       return $http.post('process/' + process_index + '/kill');
     };
-    $scope.recv_logs = function(data) {
-      if (data.process_index = $scope.log_process_index) {
-        Array.prototype.push.apply($scope.log_buffer, data.output);
-        $scope.last_log_time = data.last_output_time;
-        return $scope.subscribe_to_logs(data.process_index);
-      }
-    };
-    $scope.subscribe_unsubscribe_to_logs = function(process_index) {
-      if (process_index === $scope.log_process_index) {
-        $scope.log_process_index = null;
-        $scope.log_buffer = [];
-        return $scope.last_log_time = 0.0;
+    $scope.set_open_process = function(process_index) {
+      if ($scope.previously_selected === process_index) {
+        $scope.previously_selected = null;
       } else {
-        return $scope.subscribe_to_logs(process_index);
+        $scope.previously_selected = process_index;
       }
-    };
-    $scope.subscribe_to_logs = function(process_index, delay) {
-      var http_get;
-      if (delay == null) {
-        delay = 0;
-      }
-      if (process_index !== $scope.log_process_index) {
-        $scope.log_buffer = [];
-        $scope.last_log_time = 0.0;
-        $scope.log_process_index = process_index;
-      }
-      http_get = function() {
-        return $http.get('logs/streaming/' + process_index + '/0/' + $scope.last_log_time.toFixed(2)).success($scope.recv_logs).error(function() {
-          return $scope.subscribe_to_logs(process_index, 1000);
-        });
-      };
-      return $timeout(http_get, delay);
+      return $scope.$broadcast('selected_process', $scope.previously_selected);
     };
     $scope.reschedule_status_update();
   });

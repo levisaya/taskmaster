@@ -15,7 +15,7 @@
             <div class="row">
                 <div class="col-md-7">
                     <accordion>
-                        <accordion-group ng-repeat="(process_id,process_info) in process_list_model">
+                        <accordion-group ng-repeat="(process_id,process_info) in process_list_model" ng-click="set_open_process($index)">
                             <accordion-heading>
                                 <div class="process-heading" ng-click="subscribe_unsubscribe_to_logs(process_id)">
                                     <div class="process-namebox">
@@ -33,7 +33,9 @@
                                     </div>
                                 </div>
                             </accordion-heading>
-                                <div ng-repeat="log_line in log_buffer track by $index">{{log_line}}</div>
+                                <div ng-controller="LogController">
+                                    <div ng-repeat="log_line in log_buffer track by $index">{{log_line}}</div>
+                                </div>
                         </accordion-group>
                     </accordion>
                 </div>

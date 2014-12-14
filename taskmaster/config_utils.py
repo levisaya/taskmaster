@@ -36,3 +36,19 @@ def load_and_verify_config(config_file_path):
             return config
         else:
             return None
+
+
+def parse_config(config_module):
+    logging_configuration = {}
+    process_info = {}
+    process_args = {}
+
+    for i, process in enumerate(config_module.processes):
+        logging_configuration[i] = process.get('logging', {})
+
+        process_info[i] = {'index': i,
+                           'name': process['name']}
+
+        process_args[i] = process['arguments']
+
+    return logging_configuration, process_info, process_args

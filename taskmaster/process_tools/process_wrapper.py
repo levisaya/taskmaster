@@ -5,7 +5,7 @@ from tornado.ioloop import IOLoop
 from queue import Queue, Empty
 import time
 from taskmaster.process_tools.constants import StreamType
-
+import logging
 
 class BlockingStreamReader(Thread):
     """
@@ -34,7 +34,7 @@ class BlockingStreamReader(Thread):
                 break
             else:
                 # Put the text on the queue, along with the time it was read.
-                self.callback_queue.put((round(time.time(), 2), line))
+                self.callback_queue.put(line)
 
 
 class ProcessEventGenerator(object):
@@ -92,9 +92,16 @@ class ProcessEventGenerator(object):
         except Empty:
             pass
 
-        # If we read any output, toss it out to the ProcessManager
+        # If we read any output, toss it out to the logger
         if len(output):
-            self.process_manager.handle_output(self.process_index, output, stream_type)
+            logger = logging.getLogger('taskmaster.processes.{}'.format(self.process_index))
+
+            if stream_type == StreamType.Stdout:
+                for line in output:
+                    logger.info(line)
+            elif stream_type == StreamType.Stderr:
+                for line in output:
+                    logger.error(line)
 
         # Get the current status to determine if we should try to read more or stop.
         current_status = psutil.STATUS_DEAD
@@ -129,13 +136,19 @@ class ProcessEventGenerator(object):
 
 
 class ProcessWrapper(object):
-    def __init__(self, process_id, process_manager, arglist, ioloop=IOLoop.instance()):
-        self.process_id = process_id
+    def __init__(self, process_index, process_manager, arglist, ioloop=IOLoop.instance()):
+        self.process_index = process_index
         self.process_manager = process_manager
         self.arglist = arglist
         self.ioloop = ioloop
         self.process = None
         self.processor = None
+
+    def get_status(self):
+        if self.process is not None:
+            return self.process.status()
+        else:
+            return psutil.STATUS_DEAD
 
     def start(self):
         self.process = psutil.Popen(self.arglist, stdout=PIPE, stderr=PIPE, bufsize=1)
@@ -146,12 +159,12 @@ class ProcessWrapper(object):
         self.process.cpu_percent(interval=None)
 
         # Start reading process output and status and passing it to the ProcessManager.
-        self.processor = ProcessEventGenerator(self.process_id, self.process, self.process_manager, self.ioloop)
-
+        self.processor = ProcessEventGenerator(self.process_index, self.process, self.process_manager, self.ioloop)
 
     def kill(self):
         if self.process is not None:
-            print('Killing {}'.format(self.process_id))
+            logging.getLogger('taskmaster.processes.{}'.format(self.process_index)).info('TASKMASTER: Killed')
             self.process.kill()
+        self.process = None
 
 
