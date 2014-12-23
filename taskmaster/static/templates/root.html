@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" ng-app="taskmasterApp">
+    <head>
+        <meta charset="utf-8">
+        <base href="/">
+        <title>Taskmaster</title>
+        <link rel="stylesheet" href="static/libs/bootstrap/dist/css/bootstrap.css">
+        <link rel="stylesheet" href="static/css/style.css">
+        <script src="static/libs/angular/angular.js"></script>
+        <script src="static/libs/angular-bootstrap/ui-bootstrap-tpls.js"></script>
+        <script src="static/libs/angular-ui-router/angular-ui-router.js"></script>
+        <script src="static/js/debugging/ui-router-debugging.js"></script>
+        <script src="static/js/taskmaster_app.js"></script>
+        <script src="static/js/taskmaster_routes.js"></script>
+        <script src="static/js/process_list_controller.js"></script>
+        <script src="static/js/log_controller.js"></script>
+    </head>
+    <body>
+        <nav class="navbar navbar-default">
+            <div class="container-fluid">
+                <div class="navbar-header">
+                    <a class="navbar-brand" ui-sref="index" href="">Taskmaster</a>
+                </div>
+            </div>
+        </nav>
+        <section ui-view="includes"></section>
+        <section ui-view="body"></section>
+    </body>
+</html>

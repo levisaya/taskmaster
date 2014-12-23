@@ -2,106 +2,16 @@
 (function() {
   var taskmasterApp;
 
-  taskmasterApp = angular.module('taskmasterApp', ['ui.bootstrap']);
+  taskmasterApp = angular.module('taskmasterApp', ['ui.bootstrap', 'ui.router', 'ConsoleLogger']);
 
-  taskmasterApp.controller('LogController', function($scope, $http, $timeout, $q) {
-    $scope.last_log_time = 0.0;
-    $scope.last_time_index = 0;
-    $scope.log_buffer = [];
-    $scope.subscribed = false;
-    $scope.canceller = null;
-    $scope.recv_logs = function(data) {
-      Array.prototype.push.apply($scope.log_buffer, data.output);
-      $scope.last_log_time = data.last_output_time;
-      $scope.last_time_index = data.time_index;
-      if ($scope.subscribed) {
-        return $scope.subscribe_to_logs();
-      }
-    };
-    $scope.unsubscribe_to_logs = function() {
-      $scope.canceller.resolve('derp');
-      $scope.log_buffer = [];
-      $scope.last_log_time = 0.0;
-      return $scope.last_time_index = 0;
-    };
-    $scope.$on("$destroy", $scope.unsubscribe_to_logs);
-    $scope.subscribe_to_logs = function(delay) {
-      var http_get;
-      if (delay == null) {
-        delay = 0;
-      }
-      $scope.canceller = $q.defer();
-      http_get = function() {
-        return $http.get('logs/streaming/' + $scope.$parent.$index + '/' + $scope.last_log_time.toFixed(2) + '/' + $scope.last_time_index, {
-          timeout: $scope.canceller.promise
-        }).success($scope.recv_logs).error(function() {
-          if ($scope.subscribed) {
-            return subscribe_to_logs(1000);
-          }
-        });
-      };
-      return $timeout(http_get, delay);
-    };
-    $scope.stop_start = function(event, process_index) {
-      if (process_index === $scope.$parent.$index && $scope.subscribed === false) {
-        $scope.subscribed = true;
-        return $scope.subscribe_to_logs();
-      } else if ($scope.subscribed) {
-        $scope.subscribed = false;
-        return $scope.unsubscribe_to_logs();
-      }
-    };
-    $scope.$on('selected_process', $scope.stop_start);
+  taskmasterApp.config(function($locationProvider) {
+    return $locationProvider.html5Mode(true);
   });
 
-  taskmasterApp.controller('ProcessListController', function($scope, $http, $timeout) {
-    $scope.process_list_model = {};
-    $scope.last_status_time = 0.0;
-    $scope.previously_selected = null;
-    $scope.update_model_with_status = function(data) {
-      var model_data, process_index, _ref;
-      _ref = data.process_data;
-      for (process_index in _ref) {
-        model_data = _ref[process_index];
-        if (!(process_index in $scope.process_list_model)) {
-          $scope.process_list_model[process_index] = {};
-          $http.get('process_info/' + process_index).success(function(info_data) {
-            return $scope.process_list_model[info_data.index].info = info_data;
-          });
-        }
-        $scope.process_list_model[process_index].status = model_data;
-        console.log($scope.process_list_model[process_index]);
-      }
-      $scope.last_status_time = data.last_update_time;
-      return $scope.reschedule_status_update();
-    };
-    $scope.reschedule_status_update = function(delay) {
-      var http_get;
-      if (delay == null) {
-        delay = 0;
-      }
-      http_get = function() {
-        return $http.get('process_status/' + $scope.last_status_time.toFixed(2)).success($scope.update_model_with_status).error(function() {
-          return $scope.reschedule_status_update(1000);
-        });
-      };
-      $timeout(http_get, delay);
-    };
-    $scope.start_process = function(process_index) {
-      return $http.post('process/' + process_index + '/start');
-    };
-    $scope.stop_process = function(process_index) {
-      return $http.post('process/' + process_index + '/kill');
-    };
-    $scope.set_open_process = function(process_index) {
-      if ($scope.previously_selected === process_index) {
-        $scope.previously_selected = null;
-      } else {
-        $scope.previously_selected = process_index;
-      }
-      return $scope.$broadcast('selected_process', $scope.previously_selected);
-    };
-    $scope.reschedule_status_update();
-  });
+  taskmasterApp.run([
+    'PrintToConsole', function(PrintToConsole) {
+      return PrintToConsole.active = true;
+    }
+  ]);
 
 }).call(this);

@@ -69,5 +69,5 @@ class StreamingLogHandler(tornado.web.RequestHandler):
 
 class PageHandler(tornado.web.RequestHandler):
     def get(self):
-        template = Template(filename='static/templates/main.html')
+        template = Template(filename='static/templates/root.html')
         self.write(template.render())

@@ -1,0 +1,30 @@
+<div ng-controller="ProcessListController" class="container-fluid">
+    <div class="row">
+        <div class="col-md-7">
+            <accordion>
+                <accordion-group ng-repeat="(process_index,process_info) in process_list_model" ng-click="set_open_process($index)">
+                    <accordion-heading>
+                        <div class="process-heading" ng-click="subscribe_unsubscribe_to_logs(process_id)">
+                            <div class="process-namebox">
+                                <a ui-sref="processDetails({process_index:{{process_index}}})" ng-click="$event.stopPropagation()">{{process_info.info.name}}</a>
+                            </div>
+                            <div class="process-controlbox">
+                                <div ng-switch on="process_info.status.status">
+                                    <button ng-switch-when="dead" class="btn btn-sm btn-success" ng-click="$event.stopPropagation(); start_process(process_index)">
+                                        <span class="glyphicon glyphicon-play"></span>
+                                    </button>
+                                    <button ng-switch-default class="btn btn-sm btn-danger" ng-click="$event.stopPropagation(); stop_process(process_index)">
+                                        <span class="glyphicon glyphicon-stop"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </accordion-heading>
+                        <div ng-controller="LogController">
+                            <div ng-repeat="log_line in log_buffer track by $index">{{log_line}}</div>
+                        </div>
+                </accordion-group>
+            </accordion>
+        </div>
+    </div>
+</div>
